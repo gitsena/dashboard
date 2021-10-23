@@ -1,0 +1,286 @@
+!<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <!--
+      script que incorpora um arquivo javascript externo, onde passamos o src (source - fonte) 
+      do arquivo com uma URL ou o nome do arquivo, caso estejam no mesmo diretório
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- 
+    isso faz com que o arquivo/documento dashboard.html, possa utilizar de funções e outras utilidades 
+    desse código-fonte fornecido pelo CDN (Google it) do ChartJS
+  -->
+</head>
+
+<body>
+  <div class="header">
+    <div class="container">
+      <h1>Projeto <span class="highlight">IOT</span> Revolucionário</h1>
+    </div>
+  </div>
+
+  <div class="dash-container">
+    <!-- Farol de temperatura -->
+    <div class="graph">
+      <div class="box red">
+        <h1>00°</h1>
+        <h3>STATUS</h3>
+        <p>Descrição do status</p>
+      </div>
+      <div class="box yellow">
+        <h1>00°</h1>
+        <h3>STATUS</h3>
+        <p>Descrição do status</p>
+      </div>
+      <div class="box green">
+        <h1>00°</h1>
+        <h3>STATUS</h3>
+        <p>Descrição do status</p>
+      </div>
+    </div>
+
+    <!-- Gráfico de Linhas -->
+    <div class="graph">
+      <canvas id="chartLine" style="width: 100%; height: 100%;"></canvas>
+    </div>
+
+    <!-- Gráfico de Barras -->
+    <div class="graph">
+      <canvas id="chartBar" style="width: 100%; height: 100%;"></canvas>
+    </div>
+
+    <!-- Grafico Pizza/Torta -->
+    <div class="graph">
+      <canvas id="chartPie" style="width: 100%; height: 100%;"></canvas>
+    </div>
+  </div>
+</body>
+
+</html>
+
+<script>
+  /*
+      Aqui, devemos seguir alguns passos antes de pensarmos em 'codar' um gráfico:
+      
+      Primeiro, devemos IMPORTAR a biblioteca do ChartJS, para que possamos utilizar suas funções para criar os gráficos.
+        Na tag <head>, colocamos um <script> com o atributo src="", passando o endereço do código-fonte da biblioteca.
+      
+      Depois, devemos criar uma tag <canvas> que serve para renderizar gráficos no nosso documento HTML.
+      Para isso, precisamos de um id nessa tag, para podermos plotar (***Google it***) o gráfico utilizando a 
+      biblioteca do ChartJS.
+        <canvas id="grafico"> </canvas>
+      
+      No script, temos as variáveis 'ctx' correspondentes ao gráfico pertinente (line, bar ou pie - existem MUITOS outros).
+        * ctx, é a variável para o  CONTEXTO do gráfico, onde utilizamos o 'document.getElementById()' para buscar por 
+          uma tag <canvas> em nosso HTML, e assim, passando um parâmetro para a função '.getContext()' (***Google it***).
+  
+      As variáveis de rótulos, são vetores, cujo possuem valores fixos de texto (string).
+        Esses valores serão utilizados no gráfico, para criar os rótulos (labels) do gráfico, indicando com as informações a 
+        serem exibidas, de acordo com as posições do vetor (o primeiro rótulo será equivalente ao primeiro dado, e assim 
+        suscessivamente)
+  
+      As variáveis de data (dados), também são vetores, cujo possuem valores numéricos.
+        Esses valores serão utilizados no gráfico, para criar dados (data) no gráfico, de acordo com as posições do vetor 
+        (o primeiro dado será equivalente ao primeiro rótulo, e assim suscessivamente)
+  
+      As variáveis de configuração (config), possuem todas as configurações dos gráficos, e são objetos JSON, cujo possuem 
+        uma estrutura de { chave: valor }, onde inclusive, podemos ter JSONs aninhados (um dentro do outro), como:
+          var json = { chave1 : {
+                        chave11: {
+                          chave111: valor
+                        }
+                      },
+                      chave2: 11111 };
+            
+          Dentro da configuração, temos uma propriedade de tipo (type), que manipula o tipo de gráfico a ser renderizado.
+  
+          Também temos um objeto de dados (data), que possui todas as informações referentes aos dados do gráfico.
+            Dentro dos dados, temos um objeto de 'labels' (rótulos), que recebe um valor de VETOR (da variável de rótulos),
+              que significa que cada valor dentro do vetor de rótulos, será populado como um dado dentro desse objeto de labels.
+            
+            Temos também a propriedade 'datasets', que é um vetor que recebe objetos de 'dados'.
+              Nos objetos de dados, temos as configurações do gráfico, como:
+                'label', que é o rótulo superior/título do gráfico,
+                'data', que contém os dados do gráfico,
+                'backgroundColor', que contém as cores de fundo dos dados do gráfico, 
+                'borderColor', que contém as cores das bordas dos dados do gráfico,
+                'borderWidth', que é a largura da borda dos dados do gráfico;
+  
+                O label (rótulo) do datasets, recebe o valor que será exibido no rótulo superior/título do gráfico.
+            
+                O data (dados) do datasets, recebe um valor de VETOR (da variável de dados), o que significa
+                que cada valor dentro do vetor de dados, será populado como um dado dentro desse objeto de data.
+            
+                O backgroundColor do datasets, recebe um valor de VETOR, cujo pode ser uma variável ou não 
+                
+            Por fim, temos o objeto de 'options', que recebe as configurações adicionais para o nosso gráfico
+              Nesse caso, estamos utilizando as propriedades:
+                * maintainAspectRatio: false -> pois por padrão, vem como 'true', e isso faz com que o gráfico
+                preserve seu tamanho original, e não seja 'flexível' ao seu container (acontece com gráficos de pie ou doughnut)
+  
+                * scales: { y: { beginAtZero: true } } -> um JSON aninhado, cujo estamos manipulando o eixo Y do nosso gráfico,
+                  colocando o valor inicial dele como 0;
+                  Se colocarmos o valor da propriedade como 'false', o valor inicial dos dados populados do eixo Y, será o menor valor do vetor;    
+                
+      As variáveis de gráficos (ax_chart), servem para montar/criar o gráfico, chamando a biblioteca, e instanciando (***Google it***) um novo
+      objeto de gráfico:
+        * new Chart() -> serve para instanciar/criar um novo objeto de gráfico, utilizando a biblioteca do ChartJS;
+        * () -> recebe os parâmetros de contexto e configuração do gráfico (ctx, config);
+  */
+
+  // gráfico de Linha
+  var ctxLine = document.getElementById("chartLine").getContext("2d");
+  var rotulosLine = ["2011", "2012", "2013", "2014", "2015","2016", "2017", "2018","2019", "2020", "2021"];
+  var dataLine = [540, 622, 678, 724, 788, 880, 937, 954, 998, 1045, 1100];
+  var configLine = {
+    type: 'line',
+    data: {
+      labels: rotulosLine, // referenciando a variável de rótulos (labels) para o gráfico de linha
+      datasets: [
+        {
+          label: 'Sálario Minimo',
+          data: dataLine, // referenciando a variável de dados para o gráfico de linha
+          backgroundColor: [
+            '#FF000022',
+            '#FFFF0022',
+            '#FF00FF22',
+            '#00FFFF22',
+            '#99009922',
+            '#99990022',
+            '#F0F00022',
+            '#65002222',
+          ],
+          borderColor: [
+            '#FF0000',
+            '#FFFF00',
+            '#FF00FF',
+            '#00FFFF',
+            '#990099',
+            '#999900',
+            '#F0F000',
+            '#650022',
+          ],
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      // por padrão, vem como 'true', e faz com que o gráfico se 'mantenha com o mesmo aspecto de proporção', não ficando responsivo 
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        }
+      }
+    }
+  }
+  var ax_chartLine = new Chart(ctxLine, configLine); // criando o gráfico, chamando o new Chart da biblioteca, passando o contexto e as configurações
+
+
+  // gráf ico de Barras
+  var ctxBar = document.getElementById("chartBar").getContext("2d");
+  var rotulosBar = ["Norte", "Nordeste", "Sudeste", "Sul", "Centro-oeste"];
+  var dataBar = [1711, 1539, 2585, 2499, 2498];
+  var configBar = {
+    type: 'bar',
+    data: {
+      labels: rotulosBar, // referenciando a variável de rótulos (labels) para o gráfico de barras
+      datasets: [
+        {
+          label: 'Média de Sélario por Região',
+          data: dataBar, // referenciando a variável de dados para o gráfico de barras
+          backgroundColor: [
+            '#FF000022',
+            '#FFFF0022',
+            '#FF00FF22',
+            '#00FFFF22',
+            '#99009922',
+            '#99990022',
+            '#F0F00022',
+            '#65002222',
+          ],
+          borderColor: [
+            '#FF0000',
+            '#FFFF00',
+            '#FF00FF',
+            '#00FFFF',
+            '#990099',
+            '#999900',
+            '#F0F000',
+            '#650022',
+          ],
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      // por padrão, vem como 'true', e faz com que o gráfico se 'mantenha com o mesmo aspecto de proporção', não ficando responsivo
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        }
+      }
+    }
+  }
+  var ax_chartBar = new Chart(ctxBar, configBar); // criando o gráfico, chamando o new Chart da biblioteca, passando o contexto e as configurações
+
+
+  // gráfico de Pizza/Torta
+  var ctxPie = document.getElementById("chartPie").getContext("2d");
+  var rotulosPie = ["Brasil Total", "Norte", "Nordeste", "Sudeste", "Sul", "Centro-oeste"];
+  var dataPie = [11, 10.6, 13.6, 11.4, 6.8, 9.3];
+  var configPie = {
+    type: 'pie',
+    data: {
+      labels: rotulosPie, // referenciando a variável de rótulos (labels) para o gráfico de pizza/torta
+      datasets: [
+        {
+          label: 'Desemprego por Região',
+          data: dataPie, // referenciando a variável de dados para o gráfico de pizza/torta
+          backgroundColor: [
+            '#FF000022',
+            '#FFFF0022',
+            '#FF00FF22',
+            '#00FFFF22',
+            '#99009922',
+            '#99990022',
+            '#F0F00022',
+            '#65002222',
+          ],
+          borderColor: [
+            '#FF0000',
+            '#FFFF00',
+            '#FF00FF',
+            '#00FFFF',
+            '#990099',
+            '#999900',
+            '#F0F000',
+            '#650022',
+          ],
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      // por padrão, vem como 'true', e faz com que o gráfico se 'mantenha com o mesmo aspecto de proporção', não ficando responsivo
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        }
+      }
+    }
+  }
+  var ax_chartPie = new Chart(ctxPie, configPie); // criando o gráfico, chamando o new Chart da biblioteca, passando o contexto e as configurações
+
+
+</script>
